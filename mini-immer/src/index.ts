@@ -1,25 +1,31 @@
 
-type Action = {name: string | symbol, value: any, type: "set"} | { name: string | symbol, next: ObjectProxy<any>, type: "get"}
+type Action = {name: string, value: any, type: "set"} | { name: string, next: ObjectProxy<any>, type: "get"}
 
 class ObjectProxy<T extends object> {
   baseObj: T
+  draftObj: T
   revokeProxy?: { proxy: T; revoke: () => void; }
-  actions: Action[]
+  action?: Action
   constructor(baseObj: T) {
     this.baseObj = baseObj
-    this.actions = []
     const self = this
     const handler: ProxyHandler<T> = {
-      get: function(target, name) {
-        const nextProxy = new ObjectProxy(target[name])
-        self.actions.push({name, next: nextProxy, type: "get"})
+      get: function(target, name: string) {
+        const value = target[name]
+        if(typeof value === "object") {
+          const nextProxy = new ObjectProxy(target[name])
 
-        return nextProxy.proxy
+          self.action = {name, next: nextProxy, type: "get"}
+
+          return nextProxy.proxy
+        } else {
+          return value
+        }
       },
 
-      set: function (target, name, value): boolean {
-        self.actions.push({name, value, type: "set"})
-
+      set: function (target, name: string, value): boolean {
+        self.action = {name, value, type: "set"}
+        self.build()
         return true
       }
     }
@@ -31,23 +37,23 @@ class ObjectProxy<T extends object> {
     return this.revokeProxy.proxy
   }
 
-  revoke = () => {
-
-  }
-
   build = (): T => {
-    let newObj = {...this.baseObj}
-    for(const effect of this.actions) {
-      if(effect.type === "set") {
-        const {name, value} = effect
-        newObj = {...this.baseObj, [name]: value}
-      } else if(effect.type === "get") {
-        const {name, next} = effect
-        newObj = {...this.baseObj, [name]: next.build()}
-      }
+    if(this.draftObj === undefined) {
+      this.draftObj = {...this.baseObj}
+    }
+    const action = this.action
+    if(action?.type === "set") {
+      const {name, value} = action
+      this.draftObj = {...this.baseObj, [name]: value}
+    } else if(action?.type === "get") {
+      const {name, next} = action
+      this.draftObj = {...this.baseObj, [name]: next.build()}
+      this.revokeProxy.revoke()
     }
 
-    return newObj
+    this.action = undefined
+
+    return this.draftObj
   }
 }
 
@@ -58,7 +64,10 @@ export function produce<T extends object>(baseObj: T, changeFunc: (d: T) => void
   changeFunc(proxyObj.proxy)
   const newObj = proxyObj.build()
 
-  proxyObj.revoke()
-
   return newObj
+}
+
+
+export function original<T>(proxy: T): T {
+  return proxy
 }

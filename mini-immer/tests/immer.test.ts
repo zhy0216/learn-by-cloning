@@ -15,7 +15,7 @@ describe('testing immer', () => {
   test('produce a new nested object', () => {
     const a = {b: {c: 1}, b1: {}}
     const na = produce(a, draft => {
-      // console.log("##### draft.b.c: ", draft.b.c)
+      draft.b.c = 3
       draft.b.c = 2
     })
 
