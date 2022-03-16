@@ -1,5 +1,5 @@
 import {original, produce} from "../src"
-import * as assert from "assert"
+import assert from "assert"
 
 describe('testing immer', () => {
   test('produce a new object', () => {

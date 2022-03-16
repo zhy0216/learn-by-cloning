@@ -1,9 +1,8 @@
+type Action = { name: string | symbol, value: any, type: "set" } |
+  { name: string | symbol, next: ObjectProxy<any>, type: "get" }
 
-type Action = {name: string | symbol, value: any, type: "set"}   |
-  { name: string | symbol, next: ObjectProxy<any>, type: "get"}
-
-const getProxy = <T extends object>(obj: T): ObjectProxy<T> =>  {
-  if(Array.isArray(obj)) {
+const getProxy = <T extends object>(obj: T): ObjectProxy<T> => {
+  if (Array.isArray(obj)) {
     return new ArrayProxy(obj)
   }
   return new ObjectProxy(obj)
@@ -14,23 +13,26 @@ const _originalKeyExist = Symbol("_originalKeyExist")
 
 class ObjectProxy<T extends object> {
   baseObj: T
-  draftObj: T
+  _draftObj?: T
   _revokeProxy?: { proxy: T; revoke: () => void; }
   action?: Action
+
   constructor(baseObj: T) {
     this.baseObj = baseObj
   }
 
-  proxyGet(target, name: string | symbol) {
-    if(name === _originalKeyExist) {
+  proxyGet(target: T, name: string | symbol) {
+    if (name === _originalKeyExist) {
       return true
     }
-    if(name === _originalKey) {
+
+    if (name === _originalKey) {
       return target
     }
-    const value = target[name]
+
+    const value = (target as any)[name]
     if (typeof value === "object") {
-      const nextProxy = getProxy(target[name])
+      const nextProxy = getProxy(value)
       this.action = {name, next: nextProxy, type: "get"}
 
       return nextProxy.proxy
@@ -39,14 +41,27 @@ class ObjectProxy<T extends object> {
     }
   }
 
-  proxySet(target, name: string, value) {
+  proxySet(target: T, name: string, value: any) {
     this.action = {name, value, type: "set"}
     this.build()
+
     return true
   }
 
+  get draftObj(): T {
+    if (!this._draftObj) {
+      this._draftObj = this.copyBaseObj()
+    }
+
+    return this._draftObj!
+  }
+
+  set draftObj(obj) {
+    this._draftObj = obj
+  }
+
   get proxy(): T {
-    if(!this._revokeProxy) {
+    if (!this._revokeProxy) {
       this._revokeProxy = Proxy.revocable<T>(this.baseObj, {
         get: this.proxyGet.bind(this),
         set: this.proxySet.bind(this),
@@ -59,19 +74,15 @@ class ObjectProxy<T extends object> {
   copyBaseObj = (): T => ({...this.baseObj})
 
   build = (): T => {
-    if(this.draftObj === undefined) {
-      this.draftObj = this.copyBaseObj()
-    }
-
     const action = this.action
 
-    if(action?.type === "set") {
+    if (action?.type === "set") {
       const {name, value} = action
       this.draftObj = {...this.baseObj, [name]: value}
-    } else if(action?.type === "get") {
+    } else if (action?.type === "get") {
       const {name, next} = action
       this.draftObj = {...this.baseObj, [name]: next.build()}
-      this._revokeProxy.revoke()
+      this._revokeProxy?.revoke?.()
     }
 
     this.action = undefined
@@ -83,15 +94,10 @@ class ObjectProxy<T extends object> {
 class ArrayProxy<T extends Array<any>> extends ObjectProxy<T> {
   copyBaseObj = (): T => [...this.baseObj] as any
 
-  proxyGet(target, name: string) {
-    const value = target[name]
-    if(Array.prototype.hasOwnProperty(name)) {
-      return (...args) => {
-        if(!this.draftObj) {
-          this.draftObj = this.copyBaseObj()
-        }
-        return value.call(this.draftObj, ...args)
-      }
+  proxyGet(target: T, name: string) {
+    const value = target[name as any]
+    if (Array.prototype.hasOwnProperty(name)) {
+      return (...args: any[]) => value.call(this.draftObj, ...args)
     }
 
     return ObjectProxy.prototype.proxyGet.call(this, target, name)
@@ -106,7 +112,9 @@ export function produce<T extends object>(baseObj: T, changeFunc: (d: T) => void
 }
 
 export function original<T>(proxy: T): T {
-  if(proxy[_originalKeyExist]) {
+  // @ts-ignore
+  if (proxy[_originalKeyExist]) {
+    // @ts-ignore
     return proxy[_originalKey]
   }
 
