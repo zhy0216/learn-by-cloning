@@ -45,4 +45,51 @@ describe('testing immer', () => {
       assert(original(draft.b[0]) === 1)
     })
   });
+
+  test('produce with temp variable 1', () => {
+    const a = {b: {c: {d: 1}}}
+    const na = produce(a, draft => {
+      const b = draft.b
+      const c = draft.b.c
+      c.d = 3
+      b.c = {d: 2}
+    })
+
+    assert(a !== na)
+    assert(a.b !== na.b)
+    assert(a.b.c.d === 1)
+    assert(na.b.c.d === 2)
+  });
+
+  test('produce with temp variable 2', () => {
+    const a = {b: {c: {d: 1}}}
+    const na = produce(a, draft => {
+      const b = draft.b
+      const c = draft.b.c
+      b.c = {d: 2}
+      c.d = 3
+    })
+
+    assert(a !== na)
+    assert(a.b !== na.b)
+    assert(a.b.c.d === 1)
+    assert(na.b.c.d === 3)
+  });
+
+  test('produce with different paths', () => {
+    const a = {b1: {c: 1}, b2: {c: 2}}
+    //@ts-ignore
+    const na = produce(a, draft => {
+      const b1 = draft.b1
+      //@ts-ignore
+      const b2 = draft.b2
+      b1.c = 2
+    })
+
+    assert(a !== na)
+    assert(na.b1.c === 2)
+    assert(na.b2.c === 2)
+  });
+
+
 });
