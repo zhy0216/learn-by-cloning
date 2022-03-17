@@ -78,7 +78,6 @@ describe('testing immer', () => {
 
   test('produce with different paths', () => {
     const a = {b1: {c: 1}, b2: {c: 2}}
-    //@ts-ignore
     const na = produce(a, draft => {
       const b1 = draft.b1
       //@ts-ignore
