@@ -7,11 +7,10 @@ export class ObjectProxy<T extends object> {
   parent?: ObjectProxy<T>
   parentAccessor?: string | number | symbol
   childrenMap: Record<string, ObjectProxy<T>>
-  actions: Action[]
+  action?: Action
 
   constructor(baseObj: T) {
     this.baseObj = baseObj
-    this.actions = []
     this.childrenMap = {}
   }
 
@@ -25,7 +24,7 @@ export class ObjectProxy<T extends object> {
     }
 
     const key = name as string
-    if(this.childrenMap[key]) {
+    if (this.childrenMap[key]) {
       return this.childrenMap[key].proxy
     }
 
@@ -42,14 +41,14 @@ export class ObjectProxy<T extends object> {
   }
 
   proxySet(target: T, name: string, value: any) {
-    this.actions.push({name, value, type: "set"})
+    this.action = {name, value, type: "set"}
     this.build()
 
     return true
   }
 
   proxyDelete(target: T, name: string) {
-    this.actions.push({name, type: "delete"})
+    this.action = {name, type: "delete"}
     this.build()
 
     return true
@@ -82,28 +81,27 @@ export class ObjectProxy<T extends object> {
   copyBaseObj = (): T => ({...this.baseObj})
 
   revoke = () => {
-    for(const child of Object.values(this.childrenMap)) {
+    for (const child of Object.values(this.childrenMap)) {
       child.revoke()
     }
     this._revokeProxy?.revoke?.()
   }
 
   build = (): T => {
-    for(const action of this.actions) {
-      if (action?.type === "set") {
-        const {name, value} = action
-        this.draftObj = {...this.baseObj, [name]: value}
-      }else if (action?.type === "delete") {
-        const {name} = action
-        const {[name as keyof T]: _, ...rest} = this.baseObj
-        this.draftObj = rest as any
-      }
-
+    const action = this.action
+    if (action?.type === "set") {
+      const {name, value} = action
+      this.draftObj = {...this.baseObj, [name]: value}
+    } else if (action?.type === "delete") {
+      const {name} = action
+      const {[name as keyof T]: _, ...rest} = this.baseObj
+      this.draftObj = rest as any
     }
 
-    this.actions = []
 
-    if(this.parent) {
+    this.action = undefined
+
+    if (this.parent) {
       this.parent.build();
       (this.parent.draftObj as any)[this.parentAccessor!] = this.draftObj
     }
