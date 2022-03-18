@@ -91,5 +91,14 @@ describe('testing immer', () => {
     assert(na.b2.c === 2)
   });
 
+  test('produce a new object with delete', () => {
+    const a: any = {b: 1}
+    const na = produce(a, draft => {
+      delete draft.b
+    })
+    assert(a !== na)
+    assert(a.b === 1)
+    assert(na.b === undefined)
+  });
 
 });

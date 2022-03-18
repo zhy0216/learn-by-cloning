@@ -48,6 +48,13 @@ export class ObjectProxy<T extends object> {
     return true
   }
 
+  proxyDelete(target: T, name: string) {
+    this.actions.push({name, type: "delete"})
+    this.build()
+
+    return true
+  }
+
   get draftObj(): T {
     if (!this._draftObj) {
       this._draftObj = this.copyBaseObj()
@@ -65,6 +72,7 @@ export class ObjectProxy<T extends object> {
       this._revokeProxy = Proxy.revocable<T>(this.baseObj, {
         get: this.proxyGet.bind(this),
         set: this.proxySet.bind(this),
+        deleteProperty: this.proxyDelete.bind(this),
       })
     }
 
@@ -85,7 +93,12 @@ export class ObjectProxy<T extends object> {
       if (action?.type === "set") {
         const {name, value} = action
         this.draftObj = {...this.baseObj, [name]: value}
+      }else if (action?.type === "delete") {
+        const {name} = action
+        const {[name as keyof T]: _, ...rest} = this.baseObj
+        this.draftObj = rest as any
       }
+
     }
 
     this.actions = []
