@@ -2,9 +2,9 @@ import {_originalKey, _originalKeyExist, Action, getProxy} from "./utils"
 
 export class ObjectProxy<T extends object> {
   baseObj: T
-  _draftObj?: T
+  draftObj?: T
   _revokeProxy?: { proxy: T; revoke: () => void; }
-  parent?: ObjectProxy<T>
+  parent?: ObjectProxy<any>
   parentAccessor?: string | number | symbol
   childrenMap: Record<string, ObjectProxy<T>>
   action?: Action
@@ -54,18 +54,6 @@ export class ObjectProxy<T extends object> {
     return true
   }
 
-  get draftObj(): T {
-    if (!this._draftObj) {
-      this._draftObj = this.copyBaseObj()
-    }
-
-    return this._draftObj!
-  }
-
-  set draftObj(obj) {
-    this._draftObj = obj
-  }
-
   get proxy(): T {
     if (!this._revokeProxy) {
       this._revokeProxy = Proxy.revocable<T>(this.baseObj, {
@@ -87,25 +75,28 @@ export class ObjectProxy<T extends object> {
     this._revokeProxy?.revoke?.()
   }
 
-  build = (): T => {
+  build = (tempDraft?: T): T => {
     const action = this.action
+    if (!this.parent && !this.draftObj) {
+      this.draftObj = this.copyBaseObj()
+    }
+    const draftObj = tempDraft ? tempDraft : this.parent ? this.copyBaseObj() : this.draftObj!
+    if (this.parent) {
+      const pDraft = this.parent.build()
+      pDraft[this.parentAccessor!] = draftObj
+    }
+
     if (action?.type === "set") {
       const {name, value} = action
-      this.draftObj = {...this.baseObj, [name]: value}
+      draftObj[name as keyof T] = value
     } else if (action?.type === "delete") {
       const {name} = action
       const {[name as keyof T]: _, ...rest} = this.baseObj
       this.draftObj = rest as any
     }
 
-
     this.action = undefined
 
-    if (this.parent) {
-      this.parent.build();
-      (this.parent.draftObj as any)[this.parentAccessor!] = this.draftObj
-    }
-
-    return this.draftObj
+    return draftObj
   }
 }

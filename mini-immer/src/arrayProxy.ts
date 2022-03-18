@@ -7,8 +7,9 @@ export class ArrayProxy<T extends Array<any>> extends ObjectProxy<T> {
     const value = target[name as any]
     if (Array.prototype.hasOwnProperty(name)) {
       return (...args: any[]) => {
-        const returnValue = value.call(this.draftObj, ...args)
-        this.build()
+        const draftObject = this.copyBaseObj()
+        const returnValue = value.call(draftObject, ...args)
+        this.build(draftObject)
         return returnValue
       }
     }

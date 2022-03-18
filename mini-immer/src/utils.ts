@@ -6,7 +6,7 @@ export type Action = { name: string | symbol, value: any, type: "set" }
 
 export const getProxy = <T extends object>(obj: T): ObjectProxy<T> => {
   if (Array.isArray(obj)) {
-    return new ArrayProxy(obj)
+    return new ArrayProxy(obj as any)
   }
   return new ObjectProxy(obj)
 }
