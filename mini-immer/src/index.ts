@@ -4,7 +4,10 @@ export function produce<T extends object>(baseObj: T, changeFunc: (d: T) => void
   const proxyObj = getProxy(baseObj)
   changeFunc(proxyObj.proxy)
 
-  return proxyObj.build()
+  const result = proxyObj.build()
+  proxyObj.revoke()
+
+  return result
 }
 
 export function original<T>(proxy: T): T {

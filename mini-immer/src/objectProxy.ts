@@ -6,11 +6,13 @@ export class ObjectProxy<T extends object> {
   _revokeProxy?: { proxy: T; revoke: () => void; }
   parent?: ObjectProxy<T>
   parentAccessor?: string | number | symbol
+  childrenMap: Record<string, ObjectProxy<T>>
   actions: Action[]
 
   constructor(baseObj: T) {
     this.baseObj = baseObj
     this.actions = []
+    this.childrenMap = {}
   }
 
   proxyGet(target: T, name: string | symbol) {
@@ -22,9 +24,15 @@ export class ObjectProxy<T extends object> {
       return target
     }
 
+    const key = name as string
+    if(this.childrenMap[key]) {
+      return this.childrenMap[key].proxy
+    }
+
     const value = (target as any)[name]
     if (typeof value === "object") {
       const nextProxy = getProxy(value)
+      this.childrenMap[key] = nextProxy
       nextProxy.parent = this
       nextProxy.parentAccessor = name
       return nextProxy.proxy
@@ -65,14 +73,19 @@ export class ObjectProxy<T extends object> {
 
   copyBaseObj = (): T => ({...this.baseObj})
 
+  revoke = () => {
+    for(const child of Object.values(this.childrenMap)) {
+      child.revoke()
+    }
+    this._revokeProxy?.revoke?.()
+  }
+
   build = (): T => {
     for(const action of this.actions) {
       if (action?.type === "set") {
         const {name, value} = action
         this.draftObj = {...this.baseObj, [name]: value}
       }
-
-      this._revokeProxy?.revoke?.()
     }
 
     this.actions = []

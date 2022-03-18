@@ -82,6 +82,7 @@ describe('testing immer', () => {
       const b1 = draft.b1
       //@ts-ignore
       const b2 = draft.b2
+      b1.c = 1
       b1.c = 2
     })
 
