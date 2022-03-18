@@ -2,6 +2,15 @@ import {original, produce} from "../src"
 import assert from "assert"
 
 describe('testing immer', () => {
+  test('produce a new object without action', () => {
+    const a = {b: 1}
+    const na = produce(a, draft => {
+    })
+    assert(a !== na)
+    assert(a.b === 1)
+    assert(na.b === 1)
+  });
+
   test('produce a new object', () => {
     const a = {b: 1}
     const na = produce(a, draft => {

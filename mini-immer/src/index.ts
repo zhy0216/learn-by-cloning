@@ -4,7 +4,7 @@ export function produce<T extends object>(baseObj: T, changeFunc: (d: T) => void
   const proxyObj = getProxy(baseObj)
   changeFunc(proxyObj.proxy)
 
-  const result = proxyObj.draftObj!
+  const result = proxyObj.draftObj || proxyObj.copyBaseObj()
   proxyObj.revoke()
 
   return result
