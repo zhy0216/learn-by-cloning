@@ -35,18 +35,6 @@ describe('testing immer', () => {
     assert(na.b.c === 2)
   });
 
-  test('produce a new array', () => {
-    const a = {b: [1]}
-    const na = produce(a, draft => {
-      draft.b.push(2)
-    })
-    assert(a !== na)
-    assert(a.b.length === 1)
-    assert(a.b[0] === 1)
-    assert(na.b.length === 2)
-    assert(na.b[1] === 2)
-  });
-
   test('produce original', () => {
     const a = {b: [1]}
     produce(a, draft => {
