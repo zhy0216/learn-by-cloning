@@ -11,5 +11,8 @@
   "scripts": {
     "test": "jest",
     "build": "tsdx build src/index.ts --name mini-mobx"
+  },
+  "dependencies": {
+    "mobx": "^6.5.0"
   }
 }

@@ -1,5 +1,7 @@
 {
   "compilerOptions": {
+    "experimentalDecorators": true,
+    "useDefineForClassFields": true,
     "lib": ["es2015"],
     "target": "ES6",
     "strict": true,
@@ -13,6 +15,6 @@
     "noEmit": true,
     "moduleResolution": "node",
     "module": "esnext",
-    "allowJs": true,
+    "allowJs": true
   }
 }
