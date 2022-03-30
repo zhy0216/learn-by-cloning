@@ -3,9 +3,9 @@ export function makeObservable(obj: any) {
 }
 
 class Observer {
-  static newObserverArray: Set<Observer>[] = []
-  observing: Set<Observer>
-  observed: Set<Observer>
+  static newObservingArray: Set<Observer>[] = []
+  observing: Set<Observer> // this is observing the set of Observers
+  observed: Set<Observer> // this is observed by the set of Observers
   val: undefined
   callback?: () => void // for computed and autorun
   constructor(callback?: () => void) {
@@ -15,26 +15,29 @@ class Observer {
     this.callback = callback
   }
 
-  triggerCallback() {
+  triggerCallback(buildDependence?: boolean) {
     if(!this.callback) return
-    const newObservers = Observer.getOrCreateLastNewObserver()
+    const newObserving = Observer.getOrCreateLastNewObserving()
     this.callback()
-    for(const ob of newObservers) {
-      this.observed.add(ob)
+    if(buildDependence) {
+      for(const ob of newObserving) {
+        this.observing.add(ob)
+        ob.observed.add(this)
+      }
     }
-    Observer.newObserverArray.pop()
+    Observer.newObservingArray.pop()
   }
 
-  static getOrCreateLastNewObserver(): Set<Observer> {
-    const length = Observer.newObserverArray.length
+  static getOrCreateLastNewObserving(): Set<Observer> {
+    const length = Observer.newObservingArray.length
     if(length === 0) {
-      Observer.newObserverArray.push(new Set<Observer>())
-      return Observer.newObserverArray[0]
+      Observer.newObservingArray.push(new Set<Observer>())
+      return Observer.newObservingArray[0]
     }
-    return Observer.newObserverArray[length-1]
+    return Observer.newObservingArray[length-1]
   }
-  static addNewObserver(ob: Observer) {
-    const newObservers = Observer.getOrCreateLastNewObserver()
+  static addNewObservinger(ob: Observer) {
+    const newObservers = Observer.getOrCreateLastNewObserving()
     newObservers.add(ob)
   }
 
@@ -45,20 +48,17 @@ export function observable(obj: any, prop: string): any {
 
   return {
     get: () => {
-      console.log("######## im get")
-      Observer.addNewObserver(observer)
+      Observer.addNewObservinger(observer)
       return observer.val
     },
 
     set: (newVal: any) => {
-      console.log("######## im set")
-      // const oldVal = observer.val
-      observer.val = newVal
-      // if (observer.val !== oldVal) {
-      //   for(const ob of observer.observed) {
-      //     ob.triggerCallback()
-      //   }
-      // }
+      if (observer.val !== newVal) {
+        observer.val = newVal
+        for(const ob of observer.observed) {
+          ob.triggerCallback()
+        }
+      }
     }
   }
 }
@@ -67,10 +67,15 @@ export function computed(obj: any, prop: string, descriptor: PropertyDescriptor)
   if (!descriptor?.get) return descriptor
 
   const observer = new Observer(descriptor.get.bind(obj))
-  observer.triggerCallback()
+  let triggered = false
+
   return {
     get: () => {
-      Observer.addNewObserver(observer)
+      if(!triggered) {
+        observer.triggerCallback(true)
+        triggered = true
+      }
+      Observer.addNewObservinger(observer)
       return observer.val
     },
   }
@@ -78,5 +83,5 @@ export function computed(obj: any, prop: string, descriptor: PropertyDescriptor)
 
 export function autorun(f: () => void) {
   const ob = new Observer(f)
-  ob.triggerCallback()
+  ob.triggerCallback(true)
 }
