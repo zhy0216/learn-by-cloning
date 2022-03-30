@@ -44,6 +44,7 @@ describe('mini mobx', () => {
     assert(countAutoRun === 1)
 
     giraffe.energyLevel = 40
+
     // @ts-ignore
     assert(countIsHungry === 3)
     // @ts-ignore
