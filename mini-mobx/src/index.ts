@@ -2,7 +2,17 @@ export function makeObservable(obj: any) {
   // not use this one
 }
 
-export class Observer {
+declare global {
+  interface Array<T> {
+    last: () => any
+  }
+}
+
+Array.prototype.last = function () {
+  return this[this.length-1]
+}
+
+class Observer {
   static newObservingArray: Set<Observer>[] = []
   observed: Set<Observer> // this is observed by the set of Observers
   val: undefined
@@ -34,25 +44,27 @@ export class Observer {
 
   static getNewObserving(): Set<Observer> {
     Observer.newObservingArray.push(new Set<Observer>())
-    return Observer.newObservingArray[Observer.newObservingArray.length - 1]
+    return Observer.newObservingArray.last()
   }
 
-  static addNewObservinger(ob: Observer) {
+  static addNewObserver(ob: Observer) {
     if(Observer.newObservingArray.length) {
-        Observer.newObservingArray[Observer.newObservingArray.length-1].add(ob)
-    } else {
-      const newObservers = Observer.getNewObserving()
-      newObservers.add(ob)
+        Observer.newObservingArray.last().add(ob)
     }
   }
 }
 
 export function observable(obj: any, prop: string): any {
   const observer = new Observer(undefined)
+  let triggered = false
 
   return {
+
     get: () => {
-      Observer.addNewObservinger(observer)
+      if(!triggered) {
+        Observer.addNewObserver(observer)
+        triggered = true
+      }
       return observer.val
     },
 
@@ -72,8 +84,7 @@ export function computed(obj: any, prop: string, descriptor: PropertyDescriptor)
 
   const callback = () => {
     // @ts-ignore
-    const value = descriptor.get.bind(obj)()
-    observer.val = value
+    observer.val = descriptor.get.bind(obj)()
   }
   const observer = new Observer(callback)
 
@@ -82,7 +93,7 @@ export function computed(obj: any, prop: string, descriptor: PropertyDescriptor)
   return {
     get: () => {
       if(!triggered) {
-        Observer.addNewObservinger(observer)
+        Observer.addNewObserver(observer)
         observer.triggerCallback(true)
         triggered = true
       }
