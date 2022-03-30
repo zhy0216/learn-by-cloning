@@ -1,6 +1,6 @@
 import assert from "assert"
 // import { makeObservable, observable, computed, autorun} from "mobx";
-import { makeObservable, observable, computed, autorun} from "../src";
+import {makeObservable, observable, computed, autorun} from "../src";
 
 
 describe('mini mobx', () => {
@@ -35,9 +35,8 @@ describe('mini mobx', () => {
     })
 
     assert(countAutoRun === 1)
-    console.log("### countIsHungry:", countIsHungry)
     assert(countIsHungry === 1)
-    console.log("i am giraffe.energyLevel:", giraffe.energyLevel)
+
     giraffe.energyLevel = 60
 
     // @ts-ignore
