@@ -15,6 +15,7 @@
     "noEmit": true,
     "moduleResolution": "node",
     "module": "esnext",
-    "allowJs": true
+    "allowJs": true,
+    "jsx": "react"
   }
 }

@@ -1,3 +1,4 @@
+export {observer} from "./mini-mobx-react"
 export function makeObservable(obj: any) {
   // not use this one
 }
