@@ -13,7 +13,7 @@ Array.prototype.last = function () {
   return this[this.length - 1]
 }
 
-class Observer {
+export class Observer {
   static observingContextArray: Set<Observer>[] = []
   observed: Set<Observer> // this is observed by the set of Observers
   val: undefined

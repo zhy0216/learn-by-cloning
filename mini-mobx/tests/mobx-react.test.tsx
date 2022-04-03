@@ -4,7 +4,7 @@
 import { makeObservable, observable} from "../src";
 import { observer } from "../src"
 import React from "react";
-import { render } from "@testing-library/react"
+import {act, render} from "@testing-library/react"
 
 
 test('observer', () => {
@@ -27,7 +27,9 @@ test('observer', () => {
   expect(renders).toBe(1)
   expect(rendered.getAllByText("!1!")).toHaveLength(1)
 
-  store.value = 2
+  act(() => {
+    store.value = 2
+  })
 
   expect(rendered.getAllByText("!2!")).toHaveLength(1)
   expect(renders).toBe(2)
